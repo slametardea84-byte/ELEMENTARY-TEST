@@ -1,0 +1,149 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email_verified == true && request.auth.token.email == 'slametardea84@guru.smp.belajar.id')
+      );
+    }
+
+    function isHexColor(val) {
+      return val is string && val.size() == 7 && val.matches('^#[0-9a-fA-F]{6}$');
+    }
+
+    function isValidCompanion(val) {
+      return val is string && val in ['owl', 'robot', 'fox', 'crystal'];
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'school', 'className', 'role'])
+        && data.keys().hasOnly(['uid', 'displayName', 'school', 'className', 'role', 'shirtColor', 'pantsColor', 'hairColor', 'hatColor', 'companion', 'updatedAt'])
+        && data.uid == userId
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80
+        && data.school is string && data.school.size() >= 1 && data.school.size() <= 100
+        && data.className is string && data.className.size() >= 1 && data.className.size() <= 40
+        && data.role is string && (data.role == 'student' || (data.role == 'teacher' && isAdmin()))
+        && (!('shirtColor' in data) || isHexColor(data.shirtColor))
+        && (!('pantsColor' in data) || isHexColor(data.pantsColor))
+        && (!('hairColor' in data) || isHexColor(data.hairColor))
+        && (!('hatColor' in data) || isHexColor(data.hatColor))
+        && (!('companion' in data) || isValidCompanion(data.companion))
+        && (!('updatedAt' in data) || data.updatedAt is string && data.updatedAt.size() <= 40);
+    }
+
+    function isValidStudentProgress(data, userId) {
+      return data.keys().hasAll(['uid', 'studentName', 'school', 'className', 'totalScore', 'level'])
+        && data.keys().hasOnly(['uid', 'studentName', 'school', 'className', 'totalScore', 'level', 'pvpWins', 'answeredCorrectIds', 'completedChapters', 'reflections', 'updatedAt'])
+        && data.uid == userId
+        && data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 80
+        && data.school is string && data.school.size() >= 1 && data.school.size() <= 100
+        && data.className is string && data.className.size() >= 1 && data.className.size() <= 40
+        && data.totalScore is number && data.totalScore >= 0 && data.totalScore <= 100000
+        && data.level is number && data.level >= 1 && data.level <= 100
+        && (!('pvpWins' in data) || (data.pvpWins is number && data.pvpWins >= 0 && data.pvpWins <= 10000))
+        && (!('answeredCorrectIds' in data) || (data.answeredCorrectIds is list && data.answeredCorrectIds.size() <= 100 && (data.answeredCorrectIds.size() == 0 || data.answeredCorrectIds[0] is string)))
+        && (!('completedChapters' in data) || (data.completedChapters is list && data.completedChapters.size() <= 10 && (data.completedChapters.size() == 0 || data.completedChapters[0] is string)))
+        && (!('reflections' in data) || (data.reflections is map && data.reflections.size() <= 10))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 40));
+    }
+
+    function isValidCityPresence(data, sessionId) {
+      return data.keys().hasAll(['sessionId', 'name', 'school', 'className', 'role', 'x', 'y', 'z', 'lastSeenMs'])
+        && data.keys().hasOnly(['sessionId', 'name', 'school', 'className', 'role', 'shirtColor', 'pantsColor', 'hairColor', 'hatColor', 'companion', 'x', 'y', 'z', 'rotY', 'animState', 'level', 'progressPct', 'buildingId', 'lastSeenMs'])
+        && data.sessionId == sessionId
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
+        && data.school is string && data.school.size() >= 1 && data.school.size() <= 100
+        && data.className is string && data.className.size() >= 1 && data.className.size() <= 40
+        && data.role is string && data.role in ['student', 'teacher']
+        && (!('shirtColor' in data) || isHexColor(data.shirtColor))
+        && (!('pantsColor' in data) || isHexColor(data.pantsColor))
+        && (!('hairColor' in data) || isHexColor(data.hairColor))
+        && (!('hatColor' in data) || isHexColor(data.hatColor))
+        && (!('companion' in data) || isValidCompanion(data.companion))
+        && data.x is number && data.x >= -500 && data.x <= 500
+        && data.y is number && data.y >= -50 && data.y <= 200
+        && data.z is number && data.z >= -500 && data.z <= 500
+        && (!('rotY' in data) || (data.rotY is number && data.rotY >= -100 && data.rotY <= 100))
+        && (!('animState' in data) || (data.animState is string && data.animState in ['idle', 'walk', 'run', 'jump']))
+        && (!('level' in data) || (data.level is number && data.level >= 1 && data.level <= 100))
+        && (!('progressPct' in data) || (data.progressPct is number && data.progressPct >= 0 && data.progressPct <= 100))
+        && (!('buildingId' in data) || (data.buildingId is string && data.buildingId.size() <= 64))
+        && data.lastSeenMs is number && data.lastSeenMs > 0;
+    }
+
+    // Connection check document (non-sensitive connectivity probe)
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+    }
+
+    // Trusted Admin Registry (read own only, no client writes)
+    match /admins/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list, create, update, delete: if false;
+    }
+
+    // Private User Profiles
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) && isEmailVerified() && isOwner(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isValidId(userId) && isEmailVerified() && (isOwner(userId) || isAdmin())
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid;
+      allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
+    }
+
+    // Student Learning Progress
+    match /student_progress/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create: if isValidId(userId) && isEmailVerified() && isOwner(userId) && isValidStudentProgress(incoming(), userId);
+      allow update: if isValidId(userId) && isEmailVerified() && (isOwner(userId) || isAdmin())
+        && isValidStudentProgress(incoming(), userId)
+        && incoming().uid == existing().uid;
+      allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
+    }
+
+    // Public Shared 3D City Presence (non-PII avatar coordinates for direct + Google players)
+    match /city_presence/{sessionId} {
+      allow get: if isValidId(sessionId);
+      allow list: if resource.data.lastSeenMs > 0;
+      allow create: if isValidId(sessionId) && isValidCityPresence(incoming(), sessionId);
+      allow update: if isValidId(sessionId) && isValidCityPresence(incoming(), sessionId)
+        && incoming().sessionId == existing().sessionId;
+      allow delete: if isValidId(sessionId);
+    }
+  }
+}

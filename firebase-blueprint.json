@@ -1,0 +1,87 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private student or teacher account profile linked to Firebase Auth UID.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "school": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "className": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "role": { "type": "string", "enum": ["student", "teacher"] },
+        "shirtColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "pantsColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "hairColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "hatColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "companion": { "type": "string", "enum": ["owl", "robot", "fox", "crystal"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "school", "className", "role"]
+    },
+    "StudentProgress": {
+      "title": "StudentProgress",
+      "description": "Learning progress across the 5 English SMP chapter buildings and 1v1 Arena.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "studentName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "school": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "className": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "totalScore": { "type": "number" },
+        "level": { "type": "number" },
+        "pvpWins": { "type": "number" },
+        "answeredCorrectIds": { "type": "array" },
+        "completedChapters": { "type": "array" },
+        "reflections": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "studentName", "school", "className", "totalScore", "level"]
+    },
+    "CityPresence": {
+      "title": "CityPresence",
+      "description": "Public non-PII multiplayer presence in the shared 3D city keyed by unique tab session ID.",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string", "minLength": 4, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "school": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "className": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "role": { "type": "string", "enum": ["student", "teacher"] },
+        "shirtColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "pantsColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "hairColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "hatColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "companion": { "type": "string", "enum": ["owl", "robot", "fox", "crystal"] },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" },
+        "rotY": { "type": "number" },
+        "animState": { "type": "string", "enum": ["idle", "walk", "run", "jump"] },
+        "level": { "type": "number" },
+        "progressPct": { "type": "number" },
+        "buildingId": { "type": "string", "maxLength": 64 },
+        "lastSeenMs": { "type": "number" }
+      },
+      "required": ["sessionId", "name", "school", "className", "role", "x", "y", "z", "lastSeenMs"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile document owned by userId."
+    },
+    "/student_progress/{userId}": {
+      "schema": { "$ref": "#/entities/StudentProgress" },
+      "description": "Authenticated student progress across 5 chapters and 1v1 duels."
+    },
+    "/city_presence/{sessionId}": {
+      "schema": { "$ref": "#/entities/CityPresence" },
+      "description": "Public shared city avatar coordinates and visual customization (no PII)."
+    },
+    "/admins/{userId}": {
+      "schema": "AdminRole",
+      "description": "Trusted admin/teacher registry."
+    }
+  }
+}
